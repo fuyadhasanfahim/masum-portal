@@ -1,24 +1,59 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: masum-portal-db
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: masum_portal
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
   server:
     build:
       context: ./server
       dockerfile: Dockerfile
     container_name: masum-portal-server
-    ports:
-      - "5000:5000"
     env_file:
       - ./server/.env
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
     restart: unless-stopped
+    networks:
+      - masum-net
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    command: npm run dev
 
   client:
     build:
       context: ./client
       dockerfile: Dockerfile
     container_name: masum-portal-client
-    ports:
-      - "3000:3000"
     env_file:
       - ./client/.env.local
+    ports:
+      - "3000:3000"
     depends_on:
       - server
     restart: unless-stopped
+    networks:
+      - masum-net
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    command: npm run dev
+
+
+volumes:
+  postgres_data:
+
+networks:
+  masum-net:
+    driver: bridge
